@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ch.zhaw.avalanger.model.Avalange;
 import ch.zhaw.avalanger.model.AvalangeCreateDTO;
+import ch.zhaw.avalanger.model.AvalangeState;
 import ch.zhaw.avalanger.repository.AvalangeRepository;
 
 import java.util.List;
@@ -27,21 +28,30 @@ public class AvalangeController {
 
     @GetMapping(value = {"", "/{country}"})
     public ResponseEntity<List<Avalange>> getAllAvalanges(@PathVariable(required = false) String country, 
-                                  @RequestParam(required = false) String state) {
+                                  @RequestParam(required = false) AvalangeState state) {
+      // Handle all combinations of country and state filters
         if (country == null || country.isEmpty()) {
-            if (state == null || state.isEmpty()) {
-                return ResponseEntity.ok(avalangeRepository.findAll());
+            if (state == null) {
+                List<Avalange> avalanges = avalangeRepository.findAll();
+                return ResponseEntity.ok(avalanges);
             } else {
-                return ResponseEntity.ok(avalangeRepository.findByState(ch.zhaw.avalanger.model.AvalangeState.valueOf(state)));
+                List<Avalange> avalanges = avalangeRepository.findByState(state);
+                return ResponseEntity.ok(avalanges);
             }
-            return "No avalanges found";
+        } else {
+            if (state == null) {
+                List<Avalange> avalanges = avalangeRepository.findByCountry(country);
+                return ResponseEntity.ok(avalanges);
+            } else {
+                List<Avalange> avalanges = avalangeRepository.findByCountryAndState(country, state);
+                return ResponseEntity.ok(avalanges);
+            }
         }
-        return "No avalanges found for country: " + country + ", state: " + state;
     }
 
     @PostMapping("")
-    public ResponseEntity<Avalange>postMethodName(@RequestBody AvalangeCreateDTO avalangeDto) {
-        Avalange avalange = new Avalange(avalangeDto.getCountry(), avalangeDto.getDescription());
+    public ResponseEntity<Avalange> postMethodName(@RequestBody AvalangeCreateDTO avalangeDTO) {
+        Avalange avalange = new Avalange(avalangeDTO.getCountry(), avalangeDTO.getDescription());
         Avalange savedAvalange = avalangeRepository.save(avalange);
         
         return ResponseEntity.status(201).body(savedAvalange);
